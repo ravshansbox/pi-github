@@ -43,14 +43,14 @@ describe("watch", () => {
 
   afterEach(() => fake.close());
 
-  async function runUntil(done: () => boolean) {
+  async function runUntil(done: () => boolean, { use = agent, crash = false }: { use?: Agent; crash?: boolean } = {}) {
     const controller = new AbortController();
     const github = createGitHub({ baseUrl: fake.url, token: "token", repo: fake.repo });
-    const running = watch({ github, agent, repoRoot, stateFile, intervalMs: 10, concurrency: 2, signal: controller.signal, log: () => {} });
+    const running = watch({ github, agent: use, repoRoot, stateFile, intervalMs: 10, concurrency: 2, signal: controller.signal, log: () => {} });
     const deadline = Date.now() + 5000;
     while (!done() && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 10));
     controller.abort();
-    await running;
+    if (!crash) await running;
   }
 
   it("answers comments created while it runs, but not older ones", async () => {
@@ -78,5 +78,28 @@ describe("watch", () => {
     await runUntil(() => answered.length === 2);
 
     assert.deepEqual(answered, ["hello", "while stopped"]);
+  });
+
+  it("after a crash, answers the comment whose run was cut off", async () => {
+    fake.addIssue(1, "Issue", "body", "alice", "2020-01-01T00:00:00Z");
+    let started = false;
+    const hanging: Agent = {
+      run: () => {
+        started = true;
+        return new Promise(() => {});
+      },
+    };
+    await runUntil(
+      () => {
+        if (fake.comments.length === 0 && fake.requests.length > 0) fake.addComment(1, "cut off", "bob");
+        return started;
+      },
+      { use: hanging, crash: true },
+    );
+
+    await runUntil(() => answered.length === 1);
+
+    assert.deepEqual(answered, ["cut off"]);
+    assert.ok(fake.comments.some((comment) => comment.body === "agent: Re: cut off"));
   });
 });

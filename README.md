@@ -5,7 +5,7 @@ Watches open issues in a GitHub repo and answers new issues and comments with [p
 ## How it works
 
 - Polls the repo of the current directory for new issues and comments every 30 seconds. Pull requests are ignored.
-- Only handles issues and comments created after the first start. After a restart it picks up where it stopped.
+- Only handles issues and comments created after the first start. After a restart it picks up where it stopped, including runs a crash cut off. A crash right after posting a reply can lead to that reply being posted twice.
 - Each issue gets its own git worktree in `.worktrees/issue-<number>` on branch `issue-<number>`, and its own pi session that continues across comments.
 - Issues are handled in parallel, up to 3 at once. Comments on the same issue are handled one after another.
 - The agent's final message is posted as a comment that starts with `agent:`. Comments that start with `agent:` are ignored, so it does not answer itself.

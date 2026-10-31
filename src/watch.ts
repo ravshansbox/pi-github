@@ -4,7 +4,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { createDispatcher } from "./dispatcher.ts";
 import type { GitHub } from "./github.ts";
 import { handleTrigger, type Agent } from "./handler.ts";
-import { initialPollState, poll, type PollState } from "./poller.ts";
+import { initialPollState, poll, type PollState, type Trigger } from "./poller.ts";
 
 export function parseRepo(remoteUrl: string) {
   const match = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/);
@@ -12,16 +12,18 @@ export function parseRepo(remoteUrl: string) {
   return `${match[1]}/${match[2]}`;
 }
 
-async function loadState(stateFile: string): Promise<PollState> {
+type WatchState = PollState & { pending?: Trigger[] };
+
+async function loadState(stateFile: string): Promise<WatchState> {
   try {
-    return JSON.parse(await readFile(stateFile, "utf8")) as PollState;
+    return JSON.parse(await readFile(stateFile, "utf8")) as WatchState;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return initialPollState(new Date());
     throw error;
   }
 }
 
-async function saveState(stateFile: string, state: PollState) {
+async function saveState(stateFile: string, state: WatchState) {
   await mkdir(dirname(stateFile), { recursive: true });
   await writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`);
 }
@@ -45,21 +47,35 @@ export async function watch({
   signal: AbortSignal;
   log: (message: string) => void;
 }) {
-  let state = await loadState(stateFile);
+  let { pending = [], ...pollState } = await loadState(stateFile);
+  let saving = Promise.resolve();
+  const save = () => (saving = saving.then(() => saveState(stateFile, { ...pollState, pending })));
+
   const dispatcher = createDispatcher({
     concurrency,
     handle: async (trigger) => {
-      await handleTrigger(trigger, { github, agent, repoRoot });
-      log(`#${trigger.issueNumber}: answered @${trigger.author}`);
+      try {
+        await handleTrigger(trigger, { github, agent, repoRoot });
+        log(`#${trigger.issueNumber}: answered @${trigger.author}`);
+      } finally {
+        pending = pending.filter((candidate) => candidate.key !== trigger.key);
+        await save();
+      }
     },
     onError: (trigger, error) => log(`#${trigger.issueNumber}: failed: ${error instanceof Error ? error.message : error}`),
   });
 
+  for (const trigger of pending) {
+    log(`#${trigger.issueNumber}: resuming ${trigger.kind} from @${trigger.author}`);
+    dispatcher.dispatch(trigger);
+  }
+
   while (!signal.aborted) {
     try {
-      const result = await poll(github, state);
-      state = result.state;
-      await saveState(stateFile, state);
+      const result = await poll(github, pollState);
+      pollState = result.state;
+      pending = [...pending, ...result.triggers];
+      await save();
       for (const trigger of result.triggers) {
         log(`#${trigger.issueNumber}: new ${trigger.kind} from @${trigger.author}`);
         dispatcher.dispatch(trigger);
