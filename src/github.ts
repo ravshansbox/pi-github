@@ -70,5 +70,19 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
     postComment: async (issueNumber: number, body: string) => {
       await request("POST", `/repos/${repo}/issues/${issueNumber}/comments`, { body });
     },
+    getDefaultBranch: async () => {
+      const data = (await (await request("GET", `/repos/${repo}`)).json()) as { default_branch: string };
+      return data.default_branch;
+    },
+    getIssue: async (issueNumber: number) =>
+      (await (await request("GET", `/repos/${repo}/issues/${issueNumber}`)).json()) as Issue,
+    hasOpenPullRequest: async (branch: string) => {
+      const owner = repo.split("/")[0];
+      const response = await request("GET", `/repos/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}`);
+      return ((await response.json()) as unknown[]).length > 0;
+    },
+    createPullRequest: async (pull: { head: string; base: string; title: string; body: string }) => {
+      await request("POST", `/repos/${repo}/pulls`, pull);
+    },
   };
 }

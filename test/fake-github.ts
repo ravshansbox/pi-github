@@ -71,6 +71,17 @@ export async function startFakeGitHub(repo = "owner/repo") {
       sendList(issues.filter((issue) => issue.updated_at >= since));
       return;
     }
+    const issueMatch = url.pathname.match(new RegExp(`^${prefix}/issues/(\\d+)$`));
+    if (request.method === "GET" && issueMatch) {
+      const issue = issues.find((candidate) => candidate.number === Number(issueMatch[1]));
+      sendJson(issue ? 200 : 404, issue ?? { message: "Not Found" });
+      return;
+    }
+    if (request.method === "GET" && url.pathname === `${prefix}/pulls`) {
+      const head = url.searchParams.get("head") ?? "";
+      sendJson(200, pulls.filter((pull) => `${repo.split("/")[0]}:${pull.head}` === head));
+      return;
+    }
     const commentMatch = url.pathname.match(new RegExp(`^${prefix}/issues/(\\d+)/comments$`));
     if (request.method === "POST" && commentMatch) {
       const issueNumber = Number(commentMatch[1]);
