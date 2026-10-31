@@ -53,12 +53,21 @@ export async function watch({
   let saving = Promise.resolve();
   const save = () => (saving = saving.then(() => saveState(stateFile, { ...pollState, pending })));
 
+  const react = (trigger: Trigger, content: string) =>
+    github
+      .addReaction(trigger, content)
+      .catch((error) => log(`#${trigger.issueNumber}: reaction failed: ${error instanceof Error ? error.message : error}`));
+
   const dispatcher = createDispatcher({
     concurrency,
     handle: async (trigger) => {
       try {
         await handleTrigger(trigger, { github, agent, repoRoot });
         log(`#${trigger.issueNumber}: answered @${trigger.author}`);
+        await react(trigger, "rocket");
+      } catch (error) {
+        await react(trigger, "confused");
+        throw error;
       } finally {
         pending = pending.filter((candidate) => candidate.key !== trigger.key);
         await save();
@@ -81,7 +90,7 @@ export async function watch({
       for (const trigger of result.triggers) {
         log(`#${trigger.issueNumber}: new ${trigger.kind} from @${trigger.author}`);
         dispatcher.dispatch(trigger);
-        await github.addReaction(trigger, "eyes").catch((error) => log(`#${trigger.issueNumber}: reaction failed: ${error instanceof Error ? error.message : error}`));
+        await react(trigger, "eyes");
       }
     } catch (error) {
       log(`poll failed: ${error instanceof Error ? error.message : error}`);

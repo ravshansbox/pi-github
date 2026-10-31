@@ -126,4 +126,32 @@ describe("watch", () => {
       ],
     );
   });
+
+  it("reacts with rocket when it has answered, and confused when it failed", async () => {
+    fake.addIssue(1, "Issue", "body", "alice", "2020-01-01T00:00:00Z");
+    const picky: Agent = {
+      run: async (trigger) => {
+        if (trigger.body === "break") throw new Error("boom");
+        return "ok";
+      },
+    };
+    const added: number[] = [];
+    await runUntil(
+      () => {
+        if (added.length === 0 && fake.requests.length > 0) {
+          added.push(fake.addComment(1, "fine", "bob").id, fake.addComment(1, "break", "bob").id);
+        }
+        return fake.reactions.filter((reaction) => reaction.content !== "eyes").length === 2;
+      },
+      { use: picky },
+    );
+
+    assert.deepEqual(
+      fake.reactions.filter((reaction) => reaction.content !== "eyes"),
+      [
+        { target: `comment:${added[0]}`, content: "rocket" },
+        { target: `comment:${added[1]}`, content: "confused" },
+      ],
+    );
+  });
 });
