@@ -41,6 +41,14 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
     return response;
   }
 
+  async function getRepository() {
+    return (await (await request("GET", `/repos/${repo}`)).json()) as {
+      default_branch: string;
+      allow_squash_merge?: boolean;
+      allow_rebase_merge?: boolean;
+    };
+  }
+
   async function list<T>(path: string): Promise<T[]> {
     const items: unknown[] = [];
     let url: string | undefined = path;
@@ -74,16 +82,30 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
       const path = target.kind === "issue" ? `issues/${target.id}` : `issues/comments/${target.id}`;
       await request("POST", `/repos/${repo}/${path}/reactions`, { content });
     },
-    getDefaultBranch: async () => {
-      const data = (await (await request("GET", `/repos/${repo}`)).json()) as { default_branch: string };
-      return data.default_branch;
+    getDefaultBranch: async () => (await getRepository()).default_branch,
+    getMergeMethod: async () => {
+      const settings = await getRepository();
+      if (settings.allow_squash_merge) return "squash";
+      if (settings.allow_rebase_merge) return "rebase";
+      return "merge";
+    },
+    hasWriteAccess: async (user: string) => {
+      const response = await request("GET", `/repos/${repo}/collaborators/${encodeURIComponent(user)}/permission`);
+      const { permission } = (await response.json()) as { permission: string };
+      return ["admin", "maintain", "write"].includes(permission);
     },
     getIssue: async (issueNumber: number) =>
       (await (await request("GET", `/repos/${repo}/issues/${issueNumber}`)).json()) as Issue,
-    hasOpenPullRequest: async (branch: string) => {
+    findOpenPullRequest: async (branch: string) => {
       const owner = repo.split("/")[0];
       const response = await request("GET", `/repos/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}`);
-      return ((await response.json()) as unknown[]).length > 0;
+      return ((await response.json()) as { number: number }[])[0]?.number;
+    },
+    mergePullRequest: async (pullNumber: number, mergeMethod: string) => {
+      await request("PUT", `/repos/${repo}/pulls/${pullNumber}/merge`, { merge_method: mergeMethod });
+    },
+    closeIssue: async (issueNumber: number) => {
+      await request("PATCH", `/repos/${repo}/issues/${issueNumber}`, { state: "closed", state_reason: "completed" });
     },
     createPullRequest: async (pull: { head: string; base: string; title: string; body: string }) => {
       await request("POST", `/repos/${repo}/pulls`, pull);

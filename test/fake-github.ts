@@ -6,6 +6,7 @@ type User = { login: string };
 
 export type FakeIssue = {
   number: number;
+  state?: string;
   title: string;
   body: string | null;
   user: User;
@@ -29,7 +30,9 @@ export type RecordedRequest = { method: string; path: string; body: unknown };
 export async function startFakeGitHub(repo = "owner/repo") {
   const issues: FakeIssue[] = [];
   const comments: FakeComment[] = [];
-  const pulls: { number: number; head: string; base: string; title: string; body: string }[] = [];
+  const pulls: { number: number; head: string; base: string; title: string; body: string; state: string; merge_method?: string }[] = [];
+  const permissions = new Map<string, string>([["me", "admin"]]);
+  const settings = { allow_merge_commit: false, allow_squash_merge: true, allow_rebase_merge: false };
   const requests: RecordedRequest[] = [];
   const reactions: { target: string; content: string }[] = [];
   let nextId = 1000;
@@ -61,7 +64,7 @@ export async function startFakeGitHub(repo = "owner/repo") {
     };
 
     if (request.method === "GET" && url.pathname === prefix) {
-      sendJson(200, { default_branch: "main" });
+      sendJson(200, { default_branch: "main", ...settings });
       return;
     }
     if (request.method === "GET" && url.pathname === `${prefix}/issues/comments`) {
@@ -80,7 +83,30 @@ export async function startFakeGitHub(repo = "owner/repo") {
     }
     if (request.method === "GET" && url.pathname === `${prefix}/pulls`) {
       const head = url.searchParams.get("head") ?? "";
-      sendJson(200, pulls.filter((pull) => `${repo.split("/")[0]}:${pull.head}` === head));
+      sendJson(200, pulls.filter((pull) => pull.state === "open" && `${repo.split("/")[0]}:${pull.head}` === head));
+      return;
+    }
+    const permissionMatch = url.pathname.match(new RegExp(`^${prefix}/collaborators/([^/]+)/permission$`));
+    if (request.method === "GET" && permissionMatch) {
+      sendJson(200, { permission: permissions.get(permissionMatch[1]) ?? "none" });
+      return;
+    }
+    const mergeMatch = url.pathname.match(new RegExp(`^${prefix}/pulls/(\\d+)/merge$`));
+    if (request.method === "PUT" && mergeMatch) {
+      const pull = pulls.find((candidate) => candidate.number === Number(mergeMatch[1]));
+      if (!pull || pull.state !== "open") {
+        sendJson(405, { message: "Pull Request is not mergeable" });
+        return;
+      }
+      pull.state = "merged";
+      pull.merge_method = body.merge_method;
+      sendJson(200, { merged: true });
+      return;
+    }
+    if (request.method === "PATCH" && issueMatch) {
+      const issue = issues.find((candidate) => candidate.number === Number(issueMatch[1]));
+      if (issue) Object.assign(issue, body);
+      sendJson(issue ? 200 : 404, issue ?? { message: "Not Found" });
       return;
     }
     const commentMatch = url.pathname.match(new RegExp(`^${prefix}/issues/(\\d+)/comments$`));
@@ -99,7 +125,7 @@ export async function startFakeGitHub(repo = "owner/repo") {
       return;
     }
     if (request.method === "POST" && url.pathname === `${prefix}/pulls`) {
-      const pull = { number: 500 + pulls.length, ...body };
+      const pull = { number: 500 + pulls.length, state: "open", ...body };
       pulls.push(pull);
       sendJson(201, { number: pull.number, html_url: `https://github.com/${repo}/pull/${pull.number}` });
       return;
@@ -144,6 +170,8 @@ export async function startFakeGitHub(repo = "owner/repo") {
     issues,
     comments,
     pulls,
+    permissions,
+    settings,
     reactions,
     requests,
     addIssue,

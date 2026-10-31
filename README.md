@@ -12,6 +12,7 @@ Watches open issues in a GitHub repo and answers new issues and comments with [p
 - Issues are handled in parallel, up to 3 at once. Comments on the same issue are handled one after another.
 - The agent's final message is posted as a comment that starts with `agent:`. Comments that start with `agent:` are ignored, so it does not answer itself.
 - If the agent made commits, the branch is pushed and a pull request is opened once. Later commits update the same pull request.
+- When someone with write access confirms the implementation is good, the agent asks for a merge: the pull request is merged with the method the repo allows (squash, then rebase, then merge commit) and the issue is closed. Anyone without write access is refused.
 - State and sessions are kept in `.git/pi-github`.
 
 ## Requirements
