@@ -81,6 +81,7 @@ export async function watch({
       for (const trigger of result.triggers) {
         log(`#${trigger.issueNumber}: new ${trigger.kind} from @${trigger.author}`);
         dispatcher.dispatch(trigger);
+        await github.addReaction(trigger, "eyes").catch((error) => log(`#${trigger.issueNumber}: reaction failed: ${error instanceof Error ? error.message : error}`));
       }
     } catch (error) {
       log(`poll failed: ${error instanceof Error ? error.message : error}`);

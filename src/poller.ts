@@ -3,6 +3,7 @@ import type { GitHub } from "./github.ts";
 export type Trigger = {
   key: string;
   kind: "issue" | "comment";
+  id: number;
   issueNumber: number;
   author: string;
   body: string;
@@ -38,6 +39,7 @@ export async function poll(github: GitHub, state: PollState): Promise<{ triggers
       .map((issue) => ({
         key: `issue:${issue.number}`,
         kind: "issue" as const,
+        id: issue.number,
         issueNumber: issue.number,
         author: issue.user.login,
         body: issue.body ?? "",
@@ -48,6 +50,7 @@ export async function poll(github: GitHub, state: PollState): Promise<{ triggers
       .map((comment) => ({
         key: `comment:${comment.id}`,
         kind: "comment" as const,
+        id: comment.id,
         issueNumber: Number(comment.issue_url.split("/").pop()),
         author: comment.user.login,
         body: comment.body,

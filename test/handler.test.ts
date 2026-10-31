@@ -11,6 +11,7 @@ import { createRepos, git } from "./repos.ts";
 const trigger = (body: string): Trigger => ({
   key: `comment:${body}`,
   kind: "comment",
+  id: 1,
   issueNumber: 7,
   author: "alice",
   body,

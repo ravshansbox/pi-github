@@ -70,6 +70,10 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
     postComment: async (issueNumber: number, body: string) => {
       await request("POST", `/repos/${repo}/issues/${issueNumber}/comments`, { body });
     },
+    addReaction: async (target: { kind: "issue" | "comment"; id: number }, content: string) => {
+      const path = target.kind === "issue" ? `issues/${target.id}` : `issues/comments/${target.id}`;
+      await request("POST", `/repos/${repo}/${path}/reactions`, { content });
+    },
     getDefaultBranch: async () => {
       const data = (await (await request("GET", `/repos/${repo}`)).json()) as { default_branch: string };
       return data.default_branch;

@@ -31,6 +31,7 @@ export async function startFakeGitHub(repo = "owner/repo") {
   const comments: FakeComment[] = [];
   const pulls: { number: number; head: string; base: string; title: string; body: string }[] = [];
   const requests: RecordedRequest[] = [];
+  const reactions: { target: string; content: string }[] = [];
   let nextId = 1000;
 
   const readBody = async (request: IncomingMessage) => {
@@ -89,6 +90,14 @@ export async function startFakeGitHub(repo = "owner/repo") {
       sendJson(201, created);
       return;
     }
+    const commentReactionMatch = url.pathname.match(new RegExp(`^${prefix}/issues/comments/(\\d+)/reactions$`));
+    const issueReactionMatch = url.pathname.match(new RegExp(`^${prefix}/issues/(\\d+)/reactions$`));
+    if (request.method === "POST" && (commentReactionMatch || issueReactionMatch)) {
+      const target = commentReactionMatch ? `comment:${commentReactionMatch[1]}` : `issue:${issueReactionMatch![1]}`;
+      reactions.push({ target, content: body.content });
+      sendJson(201, { content: body.content });
+      return;
+    }
     if (request.method === "POST" && url.pathname === `${prefix}/pulls`) {
       const pull = { number: 500 + pulls.length, ...body };
       pulls.push(pull);
@@ -135,6 +144,7 @@ export async function startFakeGitHub(repo = "owner/repo") {
     issues,
     comments,
     pulls,
+    reactions,
     requests,
     addIssue,
     addPullRequest,

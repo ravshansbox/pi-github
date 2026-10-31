@@ -102,4 +102,28 @@ describe("watch", () => {
     assert.deepEqual(answered, ["cut off"]);
     assert.ok(fake.comments.some((comment) => comment.body === "agent: Re: cut off"));
   });
+
+  it("reacts with eyes to a new issue or comment as soon as it picks it up", async () => {
+    fake.addIssue(1, "Old issue", "body", "alice", "2020-01-01T00:00:00Z");
+    const hanging: Agent = { run: () => new Promise(() => {}) };
+    let comment: ReturnType<FakeGitHub["addComment"]> | undefined;
+    await runUntil(
+      () => {
+        if (!comment && fake.requests.length > 0) {
+          comment = fake.addComment(1, "please look", "bob");
+          fake.addIssue(2, "New issue", "body", "bob");
+        }
+        return fake.reactions.length === 2;
+      },
+      { use: hanging, crash: true },
+    );
+
+    assert.deepEqual(
+      [...fake.reactions].sort((left, right) => left.target.localeCompare(right.target)),
+      [
+        { target: `comment:${comment!.id}`, content: "eyes" },
+        { target: "issue:2", content: "eyes" },
+      ],
+    );
+  });
 });
