@@ -62,7 +62,7 @@ export async function watch({
     concurrency,
     handle: async (trigger) => {
       try {
-        await handleTrigger(trigger, { github, agent, repoRoot });
+        await handleTrigger(trigger, { github, agent, repoRoot, log: (message) => log(`#${trigger.issueNumber}: ${message}`) });
         log(`#${trigger.issueNumber}: answered @${trigger.author}`);
         await react(trigger, "rocket");
       } catch (error) {

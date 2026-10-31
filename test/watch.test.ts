@@ -43,10 +43,13 @@ describe("watch", () => {
 
   afterEach(() => fake.close());
 
-  async function runUntil(done: () => boolean, { use = agent, crash = false }: { use?: Agent; crash?: boolean } = {}) {
+  async function runUntil(
+    done: () => boolean,
+    { use = agent, crash = false, log = () => {} }: { use?: Agent; crash?: boolean; log?: (message: string) => void } = {},
+  ) {
     const controller = new AbortController();
     const github = createGitHub({ baseUrl: fake.url, token: "token", repo: fake.repo });
-    const running = watch({ github, agent: use, repoRoot, stateFile, intervalMs: 10, concurrency: 2, signal: controller.signal, log: () => {} });
+    const running = watch({ github, agent: use, repoRoot, stateFile, intervalMs: 10, concurrency: 2, signal: controller.signal, log });
     const deadline = Date.now() + 5000;
     while (!done() && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 10));
     controller.abort();
@@ -153,5 +156,25 @@ describe("watch", () => {
         { target: `comment:${added[1]}`, content: "confused" },
       ],
     );
+  });
+
+  it("prints the agent's progress with the issue number", async () => {
+    fake.addIssue(4, "Issue", "body", "alice", "2020-01-01T00:00:00Z");
+    const messages: string[] = [];
+    const chatty: Agent = {
+      run: async (_trigger, { progress }) => {
+        progress("bash: npm test");
+        return "ok";
+      },
+    };
+    await runUntil(
+      () => {
+        if (fake.comments.length === 0 && fake.requests.length > 0) fake.addComment(4, "run the tests", "bob");
+        return messages.some((message) => message.includes("answered"));
+      },
+      { use: chatty, log: (message) => messages.push(message) },
+    );
+
+    assert.ok(messages.includes("#4: bash: npm test"), messages.join("\n"));
   });
 });
