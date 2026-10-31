@@ -1,0 +1,29 @@
+{
+  "name": "pi-github",
+  "version": "0.1.0",
+  "description": "Watch GitHub issues and answer them with pi agents",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "pi-github": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'test/**/*.test.ts'",
+    "prepare": "tsc"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
