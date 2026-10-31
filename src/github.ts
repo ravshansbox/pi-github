@@ -67,5 +67,8 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
       list<Issue>(`/repos/${repo}/issues?state=open&sort=updated&direction=asc&per_page=100&since=${encodeURIComponent(since)}`),
     listIssueComments: (since: string) =>
       list<Comment>(`/repos/${repo}/issues/comments?sort=updated&direction=asc&per_page=100&since=${encodeURIComponent(since)}`),
+    postComment: async (issueNumber: number, body: string) => {
+      await request("POST", `/repos/${repo}/issues/${issueNumber}/comments`, { body });
+    },
   };
 }
