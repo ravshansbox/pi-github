@@ -5,6 +5,7 @@ import type { Trigger } from "../src/poller.ts";
 
 const trigger = (issueNumber: number, body: string): Trigger => ({
   key: `${issueNumber}:${body}`,
+  kind: "comment",
   issueNumber,
   author: "alice",
   body,

@@ -2,6 +2,7 @@ import type { GitHub } from "./github.ts";
 
 export type Trigger = {
   key: string;
+  kind: "issue" | "comment";
   issueNumber: number;
   author: string;
   body: string;
@@ -36,6 +37,7 @@ export async function poll(github: GitHub, state: PollState): Promise<{ triggers
       .filter((issue) => !issue.pull_request)
       .map((issue) => ({
         key: `issue:${issue.number}`,
+        kind: "issue" as const,
         issueNumber: issue.number,
         author: issue.user.login,
         body: issue.body ?? "",
@@ -45,6 +47,7 @@ export async function poll(github: GitHub, state: PollState): Promise<{ triggers
       .filter((comment) => !comment.html_url.includes("/pull/"))
       .map((comment) => ({
         key: `comment:${comment.id}`,
+        kind: "comment" as const,
         issueNumber: Number(comment.issue_url.split("/").pop()),
         author: comment.user.login,
         body: comment.body,

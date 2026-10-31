@@ -11,6 +11,7 @@ import { startFakeGitHub, type FakeGitHub } from "./fake-github.ts";
 
 const trigger = (body: string): Trigger => ({
   key: `comment:${body}`,
+  kind: "comment",
   issueNumber: 7,
   author: "alice",
   body,
