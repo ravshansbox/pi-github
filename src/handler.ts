@@ -27,7 +27,7 @@ export async function handleTrigger(
       return `@${trigger.author} does not have write access, so the pull request will not be merged.`;
     }
     mergeRequested = true;
-    return "The pull request will be merged and the issue closed after you finish.";
+    return "The pull request will be merged after you finish, which closes the issue.";
   };
   const answer = await agent.run(trigger, { cwd: worktree, progress: log, requestMerge });
 
@@ -55,8 +55,6 @@ export async function handleTrigger(
       try {
         await github.mergePullRequest(pullNumber, await github.getMergeMethod());
         log(`merged pull request #${pullNumber}`);
-        await github.closeIssue(trigger.issueNumber);
-        log("closed the issue");
       } catch (error) {
         note = `\n\nMerging failed: ${error instanceof Error ? error.message : error}`;
       }

@@ -14,7 +14,7 @@ export function createPiAgent({ github, repo, sessionsDir }: { github: GitHub; r
         name: "merge_pull_request",
         label: "Merge pull request",
         description:
-          "Merge this issue's pull request into the default branch and close the issue, once you have finished. Call it only when the latest comment confirms the implementation is good.",
+          "Merge this issue's pull request into the default branch once you have finished; merging closes the issue. Call it only when the latest comment confirms the implementation is good.",
         parameters: Type.Object({}),
         execute: async () => ({ content: [{ type: "text", text: await requestMerge() }], details: {} }),
       });

@@ -113,7 +113,7 @@ describe("handleTrigger", () => {
       await handleTrigger(trigger("add it"), { github, agent: answering("Done.", commitGreeting), repoRoot: repos.local });
     }
 
-    it("merges the pull request with the method the repo allows and closes the issue", async () => {
+    it("merges the pull request with the method the repo allows, leaving GitHub to close the issue", async () => {
       await openPullRequest();
       const replies: string[] = [];
 
@@ -124,7 +124,8 @@ describe("handleTrigger", () => {
         fake.pulls.map(({ state, merge_method }) => ({ state, merge_method })),
         [{ state: "merged", merge_method: "squash" }],
       );
-      assert.equal(fake.issues.find((issue) => issue.number === 7)?.state, "closed");
+      assert.equal(fake.pulls[0]?.body, "agent: Closes #7");
+      assert.ok(!fake.requests.some((request) => request.method === "PATCH"));
       assert.equal(fake.comments.at(-1)?.body, "agent: Merging.");
     });
 
@@ -136,14 +137,12 @@ describe("handleTrigger", () => {
 
       assert.match(replies[0]!, /@stranger does not have write access/);
       assert.equal(fake.pulls[0]?.state, "open");
-      assert.equal(fake.issues.find((issue) => issue.number === 7)?.state, undefined);
     });
 
     it("says so when there is no pull request to merge", async () => {
       await handleTrigger({ ...trigger("looks good"), author: "me" }, { github, agent: approving([]), repoRoot: repos.local });
 
       assert.equal(fake.comments.at(-1)?.body, "agent: Merging.\n\nThere is no open pull request for this issue, so nothing was merged.");
-      assert.equal(fake.issues.find((issue) => issue.number === 7)?.state, undefined);
     });
   });
 });

@@ -104,9 +104,6 @@ export function createGitHub({ baseUrl, token, repo }: { baseUrl: string; token:
     mergePullRequest: async (pullNumber: number, mergeMethod: string) => {
       await request("PUT", `/repos/${repo}/pulls/${pullNumber}/merge`, { merge_method: mergeMethod });
     },
-    closeIssue: async (issueNumber: number) => {
-      await request("PATCH", `/repos/${repo}/issues/${issueNumber}`, { state: "closed", state_reason: "completed" });
-    },
     createPullRequest: async (pull: { head: string; base: string; title: string; body: string }) => {
       await request("POST", `/repos/${repo}/pulls`, pull);
     },

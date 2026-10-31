@@ -6,7 +6,6 @@ type User = { login: string };
 
 export type FakeIssue = {
   number: number;
-  state?: string;
   title: string;
   body: string | null;
   user: User;
@@ -101,12 +100,6 @@ export async function startFakeGitHub(repo = "owner/repo") {
       pull.state = "merged";
       pull.merge_method = body.merge_method;
       sendJson(200, { merged: true });
-      return;
-    }
-    if (request.method === "PATCH" && issueMatch) {
-      const issue = issues.find((candidate) => candidate.number === Number(issueMatch[1]));
-      if (issue) Object.assign(issue, body);
-      sendJson(issue ? 200 : 404, issue ?? { message: "Not Found" });
       return;
     }
     const commentMatch = url.pathname.match(new RegExp(`^${prefix}/issues/(\\d+)/comments$`));
