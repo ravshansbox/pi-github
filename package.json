@@ -1,6 +1,6 @@
 {
-  "name": "pi-github",
-  "version": "0.1.0",
+  "name": "@ravshansbox/pi-github",
+  "version": "0.0.0-development",
   "description": "Watch GitHub issues and answer them with pi agents",
   "type": "module",
   "license": "MIT",
@@ -24,6 +24,14 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
+    "semantic-release": "^25.0.9",
     "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ravshansbox/pi-github.git"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

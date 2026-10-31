@@ -18,17 +18,11 @@ Watches open issues in a GitHub repo and answers new issues and comments with [p
 - [GitHub CLI](https://cli.github.com) logged in (`gh auth login`), or a `GH_TOKEN` environment variable
 - pi set up with a model and credentials (`~/.pi/agent`)
 
-## Install
-
-```sh
-npm install -g github:ravshansbox/pi-github
-```
-
 ## Use
 
 ```sh
 cd path/to/your/repo
-pi-github [--interval <seconds>] [--concurrency <number>]
+npx -y @ravshansbox/pi-github [--interval <seconds>] [--concurrency <number>]
 ```
 
 Press Ctrl+C to stop after running agents finish, or press it twice to quit at once.
