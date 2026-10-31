@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createGitHub } from "../src/github.ts";
 import { handleTrigger, type Agent } from "../src/handler.ts";
 import type { Trigger } from "../src/poller.ts";
 import { startFakeGitHub, type FakeGitHub } from "./fake-github.ts";
+import { createRepos, git } from "./repos.ts";
 
 const trigger = (body: string): Trigger => ({
   key: `comment:${body}`,
@@ -17,23 +16,6 @@ const trigger = (body: string): Trigger => ({
   body,
   createdAt: "2026-01-03T00:00:00Z",
 });
-
-const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
-
-function createRepos() {
-  const root = mkdtempSync(join(tmpdir(), "pi-github-"));
-  const remote = join(root, "remote.git");
-  const local = join(root, "local");
-  git(root, "init", "-q", "--bare", "-b", "main", remote);
-  git(root, "clone", "-q", remote, local);
-  git(local, "config", "user.email", "test@example.com");
-  git(local, "config", "user.name", "Test");
-  writeFileSync(join(local, "README.md"), "hello\n");
-  git(local, "add", ".");
-  git(local, "commit", "-qm", "initial");
-  git(local, "push", "-q", "origin", "main");
-  return { remote, local };
-}
 
 describe("handleTrigger", () => {
   let fake: FakeGitHub;
