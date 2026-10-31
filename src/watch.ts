@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { createDispatcher } from "./dispatcher.ts";
@@ -25,7 +25,9 @@ async function loadState(stateFile: string): Promise<WatchState> {
 
 async function saveState(stateFile: string, state: WatchState) {
   await mkdir(dirname(stateFile), { recursive: true });
-  await writeFile(stateFile, `${JSON.stringify(state, null, 2)}\n`);
+  const temporaryFile = `${stateFile}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
+  await writeFile(temporaryFile, `${JSON.stringify(state, null, 2)}\n`);
+  await rename(temporaryFile, stateFile);
 }
 
 export async function watch({
