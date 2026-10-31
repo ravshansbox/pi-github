@@ -22,7 +22,7 @@ Watches open issues in a GitHub repo and answers new issues and comments with [p
 
 ```sh
 cd path/to/your/repo
-npx -y @ravshansbox/pi-github [--interval <seconds>] [--concurrency <number>]
+npx -y @ravshansbox/pi-github@latest [--interval <seconds>] [--concurrency <number>]
 ```
 
 Press Ctrl+C to stop after running agents finish, or press it twice to quit at once.
